@@ -54,7 +54,7 @@ CT_ID="200"  # Container ID
 CT_NAME="jvh-puzzles"
 CT_PASSWORD="JVHpassword123"  # Minst 5 tecken långt lösenord
 STORAGE="local"  # Anpassa till önskad storage
-CT_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.xz"
+CT_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.zst"
 
 # Kontrollera om containern redan finns
 if pct status $CT_ID >/dev/null 2>&1; then
