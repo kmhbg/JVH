@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Puzzle, UserProfile, PuzzleOwnership, Friendship, PuzzleBorrowHistory, PuzzleImage
+from .models import Puzzle, UserProfile, PuzzleOwnership, Friendship, PuzzleBorrowHistory, PuzzleImage, PuzzleCompletion
 from .forms import PuzzleSearchForm, UserRegistrationForm, UserUpdateForm, ProfileUpdateForm, PuzzleOwnershipForm, FriendRequestForm, PuzzleBorrowForm, PuzzleImageUploadForm
 from django.contrib.auth import login
 from django.contrib import messages
@@ -51,36 +51,58 @@ def profile(request):
 @login_required
 def toggle_owned(request, puzzle_id):
     if request.method == 'POST':
-        puzzle = get_object_or_404(Puzzle, id=puzzle_id)
+        puzzle = get_object_or_404(Puzzle.objects.using('puzzles_db'), id=puzzle_id)
         profile = request.user.userprofile
-        is_owned = puzzle in profile.owned_puzzles.all()
+        ownership = PuzzleOwnership.objects.using('puzzles_db').filter(
+            puzzle=puzzle, 
+            owner_id=profile.id
+        ).first()
         
-        if is_owned:
-            profile.owned_puzzles.remove(puzzle)
+        if ownership:
+            ownership.delete()
+            is_owned = False
+            message = "Pusslet har tagits bort från din samling"
         else:
-            profile.owned_puzzles.add(puzzle)
+            PuzzleOwnership.objects.using('puzzles_db').create(
+                puzzle=puzzle,
+                owner_id=profile.id
+            )
+            is_owned = True
+            message = "Pusslet har lagts till i din samling"
         
         return JsonResponse({
             'status': 'success',
-            'is_owned': not is_owned
+            'is_owned': is_owned,
+            'message': message
         })
     return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def toggle_completed(request, puzzle_id):
     if request.method == 'POST':
-        puzzle = get_object_or_404(Puzzle, id=puzzle_id)
+        puzzle = get_object_or_404(Puzzle.objects.using('puzzles_db'), id=puzzle_id)
         profile = request.user.userprofile
-        is_completed = puzzle in profile.completed_puzzles.all()
+        completion = PuzzleCompletion.objects.using('puzzles_db').filter(
+            puzzle=puzzle,
+            user_id=profile.id
+        ).first()
         
-        if is_completed:
-            profile.completed_puzzles.remove(puzzle)
+        if completion:
+            completion.delete()
+            is_completed = False
+            message = "Pusslet har markerats som opusslat"
         else:
-            profile.completed_puzzles.add(puzzle)
+            PuzzleCompletion.objects.using('puzzles_db').create(
+                puzzle=puzzle,
+                user_id=profile.id
+            )
+            is_completed = True
+            message = "Pusslet har markerats som pusslat"
         
         return JsonResponse({
             'status': 'success',
-            'is_completed': not is_completed
+            'is_completed': is_completed,
+            'message': message
         })
     return JsonResponse({'status': 'error'}, status=400)
 
@@ -98,43 +120,41 @@ def register(request):
 @login_required
 def dashboard(request):
     profile = request.user.userprofile
-    total_puzzles = Puzzle.objects.count()
-    owned_count = profile.owned_puzzles.count()
-    completed_count = profile.completed_puzzles.count()
+    total_puzzles = Puzzle.objects.using('puzzles_db').count()
+    owned_puzzles = profile.owned_puzzles
+    owned_count = owned_puzzles.count()
     
-    # Hämta pussel med utlåningsinformation
-    recent_puzzles = profile.owned_puzzles.all().prefetch_related(
+    recent_puzzles = owned_puzzles.prefetch_related(
         'puzzleownership_set'
     )[:5]
     
     context = {
         'total_puzzles': total_puzzles,
         'owned_count': owned_count,
-        'completed_count': completed_count,
+        'recent_puzzles': recent_puzzles,
         'owned_percentage': round((owned_count / total_puzzles) * 100 if total_puzzles > 0 else 0, 1),
-        'completed_percentage': round((completed_count / total_puzzles) * 100 if total_puzzles > 0 else 0, 1),
-        'recent_puzzles': recent_puzzles
     }
     return render(request, 'puzzles/dashboard.html', context)
 
 @login_required
 def puzzle_detail(request, puzzle_id):
-    puzzle = get_object_or_404(Puzzle, id=puzzle_id)
+    puzzle = get_object_or_404(Puzzle.objects.using('puzzles_db'), id=puzzle_id)
     ownership = None
     borrow_form = None
     image_form = PuzzleImageUploadForm()
     
-    if puzzle in request.user.userprofile.owned_puzzles.all():
-        ownership = PuzzleOwnership.objects.filter(
-            puzzle=puzzle, 
-            owner=request.user.userprofile
-        ).first()
-        
+    # Kontrollera ägarskap via PuzzleOwnership
+    ownership = PuzzleOwnership.objects.using('puzzles_db').filter(
+        puzzle=puzzle,
+        owner_id=request.user.userprofile.id
+    ).first()
+    
+    if ownership:
         if request.method == 'POST':
             if 'return_puzzle' in request.POST:
                 # Hantera återlämning
                 if ownership.borrowed_by:
-                    PuzzleBorrowHistory.objects.create(
+                    PuzzleBorrowHistory.objects.using('puzzles_db').create(
                         puzzle_ownership=ownership,
                         borrowed_by=ownership.borrowed_by,
                         borrowed_date=ownership.borrowed_date,
@@ -153,7 +173,7 @@ def puzzle_detail(request, puzzle_id):
                     image = image_form.save(commit=False)
                     image.puzzle = puzzle
                     image.uploaded_by = request.user.userprofile
-                    image.save()
+                    image.save(using='puzzles_db')
                     messages.success(request, 'Bilden har laddats upp!')
             
             else:
@@ -162,15 +182,18 @@ def puzzle_detail(request, puzzle_id):
                 if borrow_form.is_valid():
                     ownership = borrow_form.save(commit=False)
                     ownership.puzzle = puzzle
-                    ownership.owner = request.user.userprofile
-                    ownership.save()
+                    ownership.owner_id = request.user.userprofile.id
+                    ownership.save(using='puzzles_db')
                     messages.success(request, 'Utlåningsinformation har uppdaterats!')
         else:
             borrow_form = PuzzleBorrowForm(instance=ownership)
 
     # Hämta lånehistorik och användaruppladdade bilder
-    borrow_history = PuzzleBorrowHistory.objects.filter(puzzle_ownership=ownership) if ownership else []
-    user_images = puzzle.user_images.all()
+    borrow_history = PuzzleBorrowHistory.objects.using('puzzles_db').filter(
+        puzzle_ownership=ownership
+    ) if ownership else []
+    
+    user_images = puzzle.user_images.using('puzzles_db').all()
 
     return render(request, 'puzzles/puzzle_detail.html', {
         'puzzle': puzzle,
@@ -179,7 +202,7 @@ def puzzle_detail(request, puzzle_id):
         'image_form': image_form,
         'borrow_history': borrow_history,
         'user_images': user_images,
-        'is_owned': puzzle in request.user.userprofile.owned_puzzles.all()
+        'is_owned': ownership is not None
     })
 
 @login_required

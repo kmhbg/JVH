@@ -23,15 +23,29 @@ class Puzzle(models.Model):
 
 class PuzzleOwnership(models.Model):
     puzzle = models.ForeignKey(Puzzle, on_delete=models.CASCADE)
-    owner = models.ForeignKey('UserProfile', on_delete=models.CASCADE)
+    owner_id = models.IntegerField(null=True)
     missing_pieces = models.IntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
-    borrowed_by = models.CharField(max_length=200, blank=True)  # Fritext för låntagare
+    borrowed_by = models.CharField(max_length=200, blank=True)
     borrowed_date = models.DateField(null=True, blank=True)
     return_date = models.DateField(null=True, blank=True)
 
+    class Meta:
+        unique_together = ('puzzle', 'owner_id')
+
     def __str__(self):
-        return f"{self.puzzle.name_en} - Ägd av {self.owner.user.username}"
+        return f"{self.puzzle.name_en} - Ägd av {self.owner_id}"
+
+    @property
+    def owner(self):
+        if not self.owner_id:
+            return None
+        from django.contrib.auth.models import User
+        try:
+            user = User.objects.using('default').get(userprofile__id=self.owner_id)
+            return user.userprofile
+        except User.DoesNotExist:
+            return None
 
 class Friendship(models.Model):
     STATUS_CHOICES = [
@@ -61,8 +75,6 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, blank=True, null=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
-    owned_puzzles = models.ManyToManyField(Puzzle, through='PuzzleOwnership', related_name='owners', blank=True)
-    completed_puzzles = models.ManyToManyField(Puzzle, related_name='completers', blank=True)
     friends = models.ManyToManyField('self', through='Friendship', symmetrical=False, blank=True)
     
     def __str__(self):
@@ -70,6 +82,18 @@ class UserProfile(models.Model):
     
     def is_admin(self):
         return self.role == 'admin'
+
+    @property
+    def owned_puzzles(self):
+        return Puzzle.objects.using('puzzles_db').filter(
+            puzzleownership__owner_id=self.id
+        )
+
+    @property
+    def completed_puzzles(self):
+        return Puzzle.objects.using('puzzles_db').filter(
+            puzzlecompletion__user_id=self.id
+        )
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -99,3 +123,11 @@ class PuzzleImage(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
+
+class PuzzleCompletion(models.Model):
+    puzzle = models.ForeignKey(Puzzle, on_delete=models.CASCADE)
+    user_id = models.IntegerField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('puzzle', 'user_id')

@@ -1,10 +1,11 @@
 from django.contrib import admin
-from .models import Puzzle, UserProfile, PuzzleOwnership, Friendship
+from .models import Puzzle, UserProfile, PuzzleOwnership, Friendship, PuzzleCompletion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.urls import path
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -28,24 +29,16 @@ class PuzzleAdmin(admin.ModelAdmin):
     list_display = ('name_en', 'product_number', 'pieces', 'manufacturer')
     search_fields = ('name_en', 'name_nl', 'product_number')
     list_filter = ('manufacturer', 'series')
-    
+    change_list_template = 'admin/puzzles/puzzle/change_list.html'
+
     def get_urls(self):
-        from django.urls import path
         urls = super().get_urls()
-        custom_urls = [
-            path(
-                'import-puzzles/',
-                self.admin_site.admin_view(self.import_puzzles_view),
-                name='puzzles_puzzle_import-puzzles'
-            ),
+        my_urls = [
+            path('puzzles/import/', self.import_puzzles_view, name='puzzles_puzzle_import-puzzles'),
         ]
-        return custom_urls + urls
+        return my_urls + urls
 
     def import_puzzles_view(self, request):
-        if request.method != 'GET':
-            messages.error(request, 'Ogiltig förfrågan.')
-            return redirect('admin:puzzles_puzzle_changelist')
-            
         if not request.user.userprofile.is_admin():
             messages.error(request, 'Du har inte behörighet att importera pussel.')
             return redirect('admin:puzzles_puzzle_changelist')
@@ -65,11 +58,30 @@ class PuzzleAdmin(admin.ModelAdmin):
 
 @admin.register(PuzzleOwnership)
 class PuzzleOwnershipAdmin(admin.ModelAdmin):
-    list_display = ('puzzle', 'owner', 'missing_pieces', 'borrowed_by')
-    list_filter = ('owner',)
+    list_display = ('puzzle', 'get_owner_name', 'missing_pieces', 'borrowed_by')
+    list_filter = ('owner_id',)
     search_fields = ('puzzle__name_en', 'puzzle__product_number', 'borrowed_by')
+
+    def get_owner_name(self, obj):
+        return obj.owner.user.username
+    get_owner_name.short_description = 'Ägare'
+    get_owner_name.admin_order_field = 'owner_id'
 
 @admin.register(Friendship)
 class FriendshipAdmin(admin.ModelAdmin):
     list_display = ('sender', 'receiver', 'status', 'created_at')
-    list_filter = ('status',) 
+    list_filter = ('status',)
+
+@admin.register(PuzzleCompletion)
+class PuzzleCompletionAdmin(admin.ModelAdmin):
+    list_display = ('puzzle', 'get_user', 'completed_at')
+    list_filter = ('user_id',)
+    search_fields = ('puzzle__name_en',)
+
+    def get_user(self, obj):
+        try:
+            user = User.objects.using('default').get(userprofile__id=obj.user_id)
+            return user.username
+        except User.DoesNotExist:
+            return f"User ID: {obj.user_id}"
+    get_user.short_description = 'Användare' 

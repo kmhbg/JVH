@@ -4,9 +4,12 @@
 {% block object-tools-items %}
     {% if show_import_button %}
     <li>
-        <a href="{% url 'admin:puzzles_puzzle_import-puzzles' %}" class="addlink">
-            Importera pussel
-        </a>
+        <form method="post" action="{% url 'admin:puzzles_puzzle_import-puzzles' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="addlink" style="border: none; background: none; color: #447e9b; cursor: pointer; padding: 3px 12px;">
+                Importera pussel
+            </button>
+        </form>
     </li>
     {% endif %}
     {{ block.super }}

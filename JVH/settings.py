@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-9!v=i&8=1kz)49eb970mel_w0d7ncme17h&oj@)6e*i-ptrt#8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -82,7 +82,7 @@ DATABASES = {
     },
     'puzzles_db': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'puzzles.db',
+        'NAME': BASE_DIR / 'puzzles.sqlite3',
     }
 }
 

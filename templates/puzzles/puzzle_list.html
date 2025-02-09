@@ -32,38 +32,33 @@
                     <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
                     <p class="text-sm text-gray-600">{{ puzzle.pieces }} bitar</p>
                     <div class="mt-4 flex gap-2">
-                        <form method="post" action="{% url 'toggle_owned' puzzle.id %}">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="{% if puzzle in user.userprofile.owned_puzzles.all %}
-                                           bg-green-600
-                                           {% else %}
-                                           bg-gray-600
-                                           {% endif %}
-                                           text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
-                                {% if puzzle in user.userprofile.owned_puzzles.all %}
-                                ✓ Äger
-                                {% else %}
-                                Äger inte
-                                {% endif %}
-                            </button>
-                        </form>
-                        <form method="post" action="{% url 'toggle_completed' puzzle.id %}">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="{% if puzzle in user.userprofile.completed_puzzles.all %}
-                                           bg-purple-600
-                                           {% else %}
-                                           bg-gray-600
-                                           {% endif %}
-                                           text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
-                                {% if puzzle in user.userprofile.completed_puzzles.all %}
-                                ✓ Färdig
-                                {% else %}
-                                Ej färdig
-                                {% endif %}
-                            </button>
-                        </form>
+                        <button onclick="toggleOwned({{ puzzle.id }}, this)" 
+                                class="{% if puzzle in user.userprofile.owned_puzzles.all %}
+                                       bg-green-600
+                                       {% else %}
+                                       bg-gray-600
+                                       {% endif %}
+                                       text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
+                            {% if puzzle in user.userprofile.owned_puzzles.all %}
+                            ✓ Äger
+                            {% else %}
+                            Äger inte
+                            {% endif %}
+                        </button>
+                        
+                        <button onclick="toggleCompleted({{ puzzle.id }}, this)"
+                                class="{% if puzzle in user.userprofile.completed_puzzles.all %}
+                                       bg-purple-600
+                                       {% else %}
+                                       bg-gray-600
+                                       {% endif %}
+                                       text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
+                            {% if puzzle in user.userprofile.completed_puzzles.all %}
+                            ✓ Färdig
+                            {% else %}
+                            Ej färdig
+                            {% endif %}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -71,4 +66,71 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleOwned(puzzleId, button) {
+    fetch(`/toggle-owned/${puzzleId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.is_owned) {
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
+                button.textContent = 'Äger';
+            } else {
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-outline-primary');
+                button.textContent = 'Äger inte';
+            }
+        }
+    });
+}
+
+function toggleCompleted(puzzleId, button) {
+    fetch(`/toggle-completed/${puzzleId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.is_completed) {
+                button.classList.remove('btn-outline-success');
+                button.classList.add('btn-success');
+                button.textContent = 'Färdig';
+            } else {
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-success');
+                button.textContent = 'Ej färdig';
+            }
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 {% endblock %} 

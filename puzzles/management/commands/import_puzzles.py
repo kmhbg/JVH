@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from puzzles.models import Puzzle, PuzzleImage
+from puzzles.models import Puzzle
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -47,79 +47,13 @@ class Command(BaseCommand):
                         
                         self.stdout.write(f"Importerar: {puzzle_data['name_en']}")
                         
-                        # Försök hitta bild-URL
-                        link = cols[9].find('a') if len(cols) > 9 else None
-                        if link and 'href' in link.attrs:
-                            detail_url = urljoin(self.BASE_URL, link['href'])
-                            image_urls = self.get_puzzle_image(detail_url)
-                            if image_urls:
-                                puzzle_data['image_url'] = image_urls
-                        
                         # Skapa eller uppdatera pussel
                         puzzle, created = Puzzle.objects.update_or_create(
                             product_number=puzzle_data['product_number'],
                             defaults=puzzle_data
                         )
-
-                        # Hämta och spara alla bilder
-                        if link and 'href' in link.attrs:
-                            detail_url = urljoin(self.BASE_URL, link['href'])
-                            self.save_puzzle_images(puzzle, detail_url)
                 
                 self.stdout.write(self.style.SUCCESS('Import slutförd'))
                 
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Ett fel uppstod: {str(e)}'))
-
-    def get_puzzle_image(self, detail_url):
-        try:
-            self.stdout.write(f"Hämtar bild från: {detail_url}")
-            response = requests.get(detail_url)
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Hitta alla bilder i detaljlänkarna
-            detail_links = soup.find_all('a', {'class': 'detail-link'})
-            image_urls = []
-            
-            for link in detail_links:
-                img = link.find('img')
-                if img and 'src' in img.attrs:
-                    image_url = urljoin(self.BASE_URL, img['src'])
-                    image_urls.append(image_url)
-                    self.stdout.write(f"Hittade bild: {image_url}")
-            
-            # Returnera första bilden eller None om ingen hittades
-            if image_urls:
-                return image_urls[0]
-                
-            self.stdout.write(self.style.WARNING(f'Ingen bild hittades på {detail_url}'))
-            
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f'Kunde inte hämta bild: {str(e)}'))
-        return None
-
-    def save_puzzle_images(self, puzzle, detail_url):
-        try:
-            response = requests.get(detail_url)
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Hitta alla bilder i detaljlänkarna
-            detail_links = soup.find_all('a', {'class': 'detail-link'})
-            
-            # Ta bort gamla bilder
-            PuzzleImage.objects.filter(puzzle=puzzle).delete()
-            
-            # Spara nya bilder
-            for i, link in enumerate(detail_links):
-                img = link.find('img')
-                if img and 'src' in img.attrs:
-                    image_url = urljoin(self.BASE_URL, img['src'])
-                    PuzzleImage.objects.create(
-                        puzzle=puzzle,
-                        image_url=image_url,
-                        order=i
-                    )
-                    self.stdout.write(f"Sparade bild {i+1} för {puzzle.name_en}")
-                    
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f'Kunde inte spara bilder för {puzzle.name_en}: {str(e)}')) 
+                self.stdout.write(self.style.ERROR(f'Ett fel uppstod: {str(e)}')) 
