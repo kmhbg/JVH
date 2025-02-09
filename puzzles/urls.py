@@ -18,4 +18,5 @@ urlpatterns = [
     path('handle-borrow-request/<int:request_id>/', views.handle_borrow_request, name='handle_borrow_request'),
     path('delete-puzzle-image/<int:image_id>/', views.delete_puzzle_image, name='delete_puzzle_image'),
     path('mark-puzzle-sold/<int:puzzle_id>/', views.mark_puzzle_sold, name='mark_puzzle_sold'),
+    path('remove-puzzle/<int:puzzle_id>/', views.remove_puzzle, name='remove_puzzle'),
 ] 

@@ -419,4 +419,17 @@ def mark_puzzle_sold(request, puzzle_id):
         status_text = 'sålt' if ownership.status == 'previously_owned' else 'ägt igen'
         messages.success(request, f'Pusslet har markerats som {status_text}')
         return redirect('puzzle_detail', puzzle_id=puzzle_id)
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def remove_puzzle(request, puzzle_id):
+    if request.method == 'POST':
+        ownership = get_object_or_404(
+            PuzzleOwnership.objects.using('puzzles_db'),
+            puzzle_id=puzzle_id,
+            owner_id=request.user.userprofile.id
+        )
+        ownership.delete()
+        messages.success(request, 'Pusslet har tagits bort från din samling')
+        return redirect('dashboard')
     return JsonResponse({'status': 'error'}, status=400) 

@@ -190,6 +190,19 @@
                         </div>
                     {% endif %}
                 </div>
+
+                <!-- Lägg till ta bort-knapp i en egen sektion längst ner -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <form method="post" 
+                          action="{% url 'remove_puzzle' puzzle.id %}"
+                          onsubmit="return confirm('Är du säker på att du vill ta bort detta pussel från din samling? Detta går inte att ångra.')">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors">
+                            Ta bort från min samling
+                        </button>
+                    </form>
+                </div>
             {% else %}
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <p class="text-gray-600">Du måste äga pusslet för att kunna hantera utlåning.</p>
