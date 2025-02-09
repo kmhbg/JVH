@@ -41,42 +41,83 @@ fi
 # Konfigurera LXC container för JVH pussel-sida
 # Kör detta script på Proxmox hosten
 
+# Funktion för att kontrollera om ett kommando lyckas
+check_command() {
+    if [ $? -ne 0 ]; then
+        echo "Fel: $1"
+        exit 1
+    fi
+}
+
 # Variabler
 CT_ID="200"  # Container ID
 CT_NAME="jvh-puzzles"
-CT_PASSWORD="root"
+CT_PASSWORD="JVHpassword123"  # Minst 5 tecken långt lösenord
 STORAGE="local"  # Anpassa till önskad storage
 CT_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.xz"
 
+# Kontrollera om containern redan finns
+if pct status $CT_ID >/dev/null 2>&1; then
+    echo "En container med ID $CT_ID finns redan. Välj ett annat ID."
+    exit 1
+fi
+
+# Kontrollera om template finns
+if [ ! -f "/var/lib/vz/template/cache/$CT_TEMPLATE" ]; then
+    echo "Laddar ner template..."
+    pveam download local $CT_TEMPLATE
+    check_command "Kunde inte ladda ner template"
+fi
+
+echo "Skapar container..."
 # Skapa container
-pct create $CT_ID $STORAGE:vztmpl/$CT_TEMPLATE \
+pct create $CT_ID "/var/lib/vz/template/cache/$CT_TEMPLATE" \
     --hostname $CT_NAME \
-    --password $CT_PASSWORD \
+    --password "$CT_PASSWORD" \
     --net0 name=eth0,bridge=vmbr0,ip=dhcp \
     --cores 1 \
     --memory 512 \
     --swap 512 \
     --rootfs $STORAGE:8
+check_command "Kunde inte skapa container"
 
+echo "Startar container..."
 # Starta container
 pct start $CT_ID
+check_command "Kunde inte starta container"
 
-# Vänta på att containern ska starta
-sleep 10
+# Vänta på att containern ska starta och få en IP-adress
+echo "Väntar på att containern ska starta..."
+for i in {1..30}; do
+    sleep 2
+    CT_IP=$(pct exec $CT_ID -- ip -4 addr show eth0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+    if [ ! -z "$CT_IP" ]; then
+        break
+    fi
+done
 
-# Hämta tilldelad IP-adress
-CT_IP=$(pct exec $CT_ID -- ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+if [ -z "$CT_IP" ]; then
+    echo "Kunde inte få IP-adress från containern"
+    exit 1
+fi
 
+echo "Container IP: $CT_IP"
+
+echo "Installerar paket..."
 # Installera nödvändiga paket
 pct exec $CT_ID -- bash -c "apt update && apt install -y python3-pip python3-venv git nginx supervisor"
+check_command "Kunde inte installera paket"
 
+echo "Skapar användare och mappar..."
 # Skapa användare och mapp för applikationen
 pct exec $CT_ID -- bash -c "
     useradd -m -s /bin/bash jvh
     mkdir -p /opt/jvh
     chown jvh:jvh /opt/jvh
 "
+check_command "Kunde inte skapa användare och mappar"
 
+echo "Klonar repository och sätter upp miljön..."
 # Klona repository och sätt upp miljön
 pct exec $CT_ID -- bash -c "
     cd /opt/jvh
@@ -86,6 +127,7 @@ pct exec $CT_ID -- bash -c "
     source venv/bin/activate
     pip install -r requirements.txt
 "
+check_command "Kunde inte klona repository eller sätta upp miljön"
 
 # Konfigurera Nginx
 pct exec $CT_ID -- bash -c "cat > /etc/nginx/sites-available/jvh << 'EOL'
