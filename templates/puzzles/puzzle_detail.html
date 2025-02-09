@@ -10,6 +10,15 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ puzzle.name_en }}</h2>
                 <p class="text-sm text-gray-600 mb-6">{{ puzzle.product_number }}</p>
                 
+                <!-- Lägg till huvudbild här -->
+                {% if puzzle.primary_image %}
+                <div class="mb-6">
+                    <img src="{{ puzzle.primary_image }}" 
+                         alt="{{ puzzle.name_en }}" 
+                         class="w-full h-auto rounded-lg shadow-lg">
+                </div>
+                {% endif %}
+                
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <h3 class="text-lg font-semibold mb-4">Pusselinformation</h3>
                     <dl class="grid grid-cols-2 gap-4">

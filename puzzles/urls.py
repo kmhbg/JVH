@@ -19,4 +19,5 @@ urlpatterns = [
     path('delete-puzzle-image/<int:image_id>/', views.delete_puzzle_image, name='delete_puzzle_image'),
     path('mark-puzzle-sold/<int:puzzle_id>/', views.mark_puzzle_sold, name='mark_puzzle_sold'),
     path('remove-puzzle/<int:puzzle_id>/', views.remove_puzzle, name='remove_puzzle'),
+    path('export-puzzles/', views.export_puzzles, name='export_puzzles'),
 ] 

@@ -3,3 +3,7 @@ Pillow
 beautifulsoup4
 requests
 gunicorn 
+selenium
+webdriver-manager
+pandas
+openpyxl

@@ -19,7 +19,18 @@ class Puzzle(models.Model):
 
     @property
     def primary_image(self):
-        return self.images.first().image_url if self.images.exists() else None
+        # Först kolla efter importerad bild
+        imported_image = self.user_images.using('puzzles_db').filter(uploaded_by_id=1).first()
+        if imported_image:
+            return imported_image.image.url
+        
+        # Om ingen importerad bild finns, använd första användaruppladdade bilden
+        user_image = self.user_images.using('puzzles_db').exclude(uploaded_by_id=1).first()
+        if user_image:
+            return user_image.image.url
+        
+        # Om ingen bild finns, returnera None
+        return None
 
 class PuzzleOwnership(models.Model):
     STATUS_CHOICES = [
@@ -35,9 +46,11 @@ class PuzzleOwnership(models.Model):
     borrowed_by = models.CharField(max_length=200, blank=True)
     borrowed_date = models.DateField(null=True, blank=True)
     return_date = models.DateField(null=True, blank=True)
+    owned_since = models.DateField(auto_now_add=True)
 
     class Meta:
         unique_together = ('puzzle', 'owner_id')
+        db_table = 'puzzles_puzzleownership'
 
     def __str__(self):
         return f"{self.puzzle.name_en} - Ägd av {self.owner_id}"

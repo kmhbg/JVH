@@ -21,6 +21,9 @@ if [ -f /proc/1/environ ] && grep -q "container=lxc" /proc/1/environ; then
 
     # Uppdatera dependencies
     pip install -r requirements.txt
+    apt-get update
+    apt-get install -y chromium-chromedriver
+   
 
     # Kör migrations
     python manage.py makemigrations

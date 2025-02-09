@@ -33,6 +33,12 @@
     <!-- Senaste pussel -->
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Mina pussel</h2>
+        <div class="mb-4">
+            <a href="{% url 'export_puzzles' %}" 
+               class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+               Exportera till Excel
+            </a>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Ägda pussel -->
             <div class="bg-white shadow rounded-lg p-6">

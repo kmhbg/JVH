@@ -8,9 +8,12 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from .decorators import admin_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db import connections
+import pandas as pd
+from io import BytesIO
+from datetime import datetime
 
 @login_required
 def puzzle_list(request):
@@ -432,4 +435,40 @@ def remove_puzzle(request, puzzle_id):
         ownership.delete()
         messages.success(request, 'Pusslet har tagits bort från din samling')
         return redirect('dashboard')
-    return JsonResponse({'status': 'error'}, status=400) 
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def export_puzzles(request):
+    puzzles = PuzzleOwnership.objects.using('puzzles_db').filter(owner_id=request.user.id)
+    
+    data = []
+    for ownership in puzzles:
+        puzzle = ownership.puzzle
+        data.append({
+            'Namn (EN)': puzzle.name_en,
+            'Namn (NL)': puzzle.name_nl,
+            'Artikelnummer': puzzle.product_number,
+            'Serie': puzzle.series,
+            'Antal bitar': puzzle.pieces,
+            'Illustratör': puzzle.illustrator,
+            'Ägd sedan': ownership.owned_since.strftime('%Y-%m-%d') if ownership.owned_since else ''
+        })
+    
+    df = pd.DataFrame(data)
+    
+    # Skapa Excel-fil i minnet
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    
+    # Skapa filnamn med användarnamn och datum
+    filename = f'pussel_{request.user.username}_{datetime.now().strftime("%Y%m%d")}.xlsx'
+    
+    # Skapa HTTP-response med Excel-filen
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response 
