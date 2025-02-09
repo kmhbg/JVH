@@ -53,7 +53,8 @@ check_command() {
 CT_ID="200"  # Container ID
 CT_NAME="jvh-puzzles"
 CT_PASSWORD="JVHpassword123"  # Minst 5 tecken långt lösenord
-STORAGE="local"  # Anpassa till önskad storage
+STORAGE="Store"
+CONTAINER_STORE="local"  # Anpassa till önskad storage
 CT_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.zst"
 
 # Kontrollera om containern redan finns
@@ -69,9 +70,9 @@ check_command "Kunde inte uppdatera template-listan"
 
 # Kontrollera om template finns och ladda ner vid behov
 echo "Kontrollerar template..."
-if ! pveam list $STORAGE | grep -q "$CT_TEMPLATE"; then
+if ! pveam list $CONTAINER_STORE | grep -q "$CT_TEMPLATE"; then
     echo "Laddar ner template..."
-    pveam download $STORAGE $CT_TEMPLATE
+    pveam download $CONTAINER_STORE $CT_TEMPLATE
     check_command "Kunde inte ladda ner template"
 fi
 
