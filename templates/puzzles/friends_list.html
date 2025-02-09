@@ -15,13 +15,19 @@
                     <li class="py-4">
                         <div class="flex items-center space-x-4">
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate">
-                                    {% if friendship.sender == user.userprofile %}
-                                        {{ friendship.receiver.user.username }}
-                                    {% else %}
-                                        {{ friendship.sender.user.username }}
-                                    {% endif %}
-                                </p>
+                                {% if friendship.sender == user.userprofile %}
+                                    {% with friend=friendship.receiver %}
+                                    <a href="{% url 'friend_puzzles' friend.id %}" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                                        {{ friend.get_full_name|default:friend.user.username }}
+                                    </a>
+                                    {% endwith %}
+                                {% else %}
+                                    {% with friend=friendship.sender %}
+                                    <a href="{% url 'friend_puzzles' friend.id %}" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                                        {{ friend.get_full_name|default:friend.user.username }}
+                                    </a>
+                                    {% endwith %}
+                                {% endif %}
                             </div>
                         </div>
                     </li>

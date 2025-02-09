@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">{{ friend.user.username }}s Pussel</h1>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            {% for puzzle in owned_puzzles %}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                {% if puzzle.image_url %}
+                <img src="{{ puzzle.image_url }}" alt="{{ puzzle.name_en }}" class="w-full h-48 object-cover">
+                {% endif %}
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ puzzle.name_en }}</h3>
+                    <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+                    <p class="text-sm text-gray-600">{{ puzzle.pieces }} bitar</p>
+                    
+                    {% with ownership=puzzle.puzzleownership_set.first %}
+                    {% if ownership.borrowed_by %}
+                        <p class="mt-2 text-sm text-amber-600">Utlånat</p>
+                    {% else %}
+                        <button onclick="requestBorrow({{ puzzle.id }}, {{ friend.id }})" 
+                                data-puzzle-id="{{ puzzle.id }}"
+                                class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            Be att få låna
+                        </button>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="col-span-3 text-center text-gray-500">{{ friend.user.username }} har inga pussel än.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg ${
+        type === 'success' ? 'bg-green-100 text-green-800 border-green-500' : 'bg-red-100 text-red-800 border-red-500'
+    } border-l-4 shadow-lg`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function requestBorrow(puzzleId, ownerId) {
+    const button = document.querySelector(`button[data-puzzle-id="${puzzleId}"]`);
+    button.disabled = true;
+    
+    fetch(`/request-borrow/${puzzleId}/?owner_id=${ownerId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            button.textContent = 'Förfrågan skickad';
+            button.classList.add('bg-gray-400');
+            button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            showNotification(data.message);
+        } else {
+            button.disabled = false;
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        button.disabled = false;
+        showNotification('Ett fel uppstod vid skickande av förfrågan', 'error');
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %} 

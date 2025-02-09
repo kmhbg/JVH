@@ -64,6 +64,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'puzzles.context_processors.notifications',
             ],
         },
     },
@@ -86,8 +87,17 @@ DATABASES = {
     }
 }
 
-# Databas-router för att styra vilka modeller som går till vilken databas
-DATABASE_ROUTERS = ['puzzles.router.PuzzleRouter']
+# Lägg till denna konfiguration
+DATABASE_APPS_MAPPING = {
+    'auth': 'default',
+    'contenttypes': 'default',
+    'sessions': 'default',
+    'admin': 'default',
+    'puzzles': 'puzzles_db',  # Alla puzzle-relaterade modeller
+}
+
+# Uppdatera DATABASE_ROUTERS
+DATABASE_ROUTERS = ['puzzles.routers.PuzzleRouter']
 
 
 # Password validation

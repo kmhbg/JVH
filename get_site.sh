@@ -27,8 +27,19 @@ if [ -f /proc/1/environ ] && grep -q "container=lxc" /proc/1/environ; then
     python manage.py migrate --database=default
     python manage.py migrate --database=puzzles_db
 
+    # Skapa/uppdatera superuser
+    echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@jvh.com', 'Password')" | python manage.py shell
+
     # Samla statiska filer
     python manage.py collectstatic --noinput
+
+    # Sätt rätt rättigheter på databasfilerna
+    chown -R jvh:jvh .
+    chmod 664 db.sqlite3
+    chmod 664 puzzles.sqlite3
+    chmod 775 .
+    chmod 775 $(dirname db.sqlite3)
+    chmod 775 $(dirname puzzles.sqlite3)
 
     # Starta om tjänsterna
     supervisorctl restart jvh
@@ -184,13 +195,46 @@ pct exec $CT_ID -- bash -c "
     supervisorctl restart all
 "
 
-# Skapa separata databaser
+# Skapa separata databaser och superuser
 pct exec $CT_ID -- bash -c "
     cd /opt/jvh/JVH
     source venv/bin/activate
     python manage.py makemigrations
     python manage.py migrate --database=default
     python manage.py migrate --database=puzzles_db
+    echo \"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@jvh.com', 'Password')\" | python manage.py shell
 "
+check_command "Kunde inte skapa databaser eller superuser"
+
+# Efter att databaserna skapats, sätt rätt rättigheter
+pct exec $CT_ID -- bash -c "
+    cd /opt/jvh/JVH
+    chown -R jvh:jvh .
+    chmod 664 db.sqlite3
+    chmod 664 puzzles.sqlite3
+    chmod 775 .
+    chmod 775 $(dirname db.sqlite3)
+    chmod 775 $(dirname puzzles.sqlite3)
+"
+check_command "Kunde inte sätta rättigheter på databasfilerna"
 
 echo "Installation klar! Sidan är nu tillgänglig på http://$CT_IP"
+
+# Skapa och kör migrationer
+python manage.py makemigrations
+python manage.py migrate --database=default
+python manage.py migrate --database=puzzles_db
+
+# Skapa superuser om den inte finns
+echo "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@example.com', 'admin123') if not User.objects.filter(username='admin').exists() else None" | python manage.py shell
+
+# Importera pussel
+python manage.py import_puzzles
+
+# Sätt rättigheter på databasfilerna
+chown -R jvh:jvh .
+chmod 664 db.sqlite3
+chmod 664 puzzles.sqlite3
+chmod 775 .
+chmod 775 $(dirname db.sqlite3)
+chmod 775 $(dirname puzzles.sqlite3)

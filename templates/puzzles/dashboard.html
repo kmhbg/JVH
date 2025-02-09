@@ -5,20 +5,26 @@
     <h1 class="text-3xl font-bold text-gray-900 mb-8">Min Dashboard</h1>
     
     <!-- Statistik kort -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold text-gray-700">Totalt antal pussel</h2>
             <p class="text-3xl font-bold text-blue-600">{{ total_puzzles }}</p>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700">Ägda pussel</h2>
+            <h2 class="text-xl font-semibold text-gray-700">Äger nu</h2>
             <p class="text-3xl font-bold text-green-600">{{ owned_count }}</p>
             <p class="text-sm text-gray-500">{{ owned_percentage }}% av alla pussel</p>
         </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-700">Har ägt totalt</h2>
+            <p class="text-3xl font-bold text-yellow-600">{{ total_owned_ever }}</p>
+            <p class="text-sm text-gray-500">Inklusive tidigare ägda</p>
+        </div>
         
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700">Färdiga pussel</h2>
+            <h2 class="text-xl font-semibold text-gray-700">Har pusslat</h2>
             <p class="text-3xl font-bold text-purple-600">{{ completed_count }}</p>
             <p class="text-sm text-gray-500">{{ completed_percentage }}% av alla pussel</p>
         </div>
@@ -26,62 +32,76 @@
     
     <!-- Senaste pussel -->
     <div class="mt-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Dina senaste pussel</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for puzzle in recent_puzzles %}
-            <div class="bg-white shadow rounded-lg overflow-hidden">
-                {% if puzzle.image_url %}
-                <img src="{{ puzzle.image_url }}" alt="{{ puzzle.name_en }}" class="w-full h-48 object-cover">
-                {% endif %}
-                <div class="p-4">
-                    <a href="{% url 'puzzle_detail' puzzle.id %}" class="block hover:text-blue-600">
-                        <h3 class="text-lg font-semibold text-gray-900">{{ puzzle.name_en }}</h3>
-                        <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
-                        
-                        {% with ownership=puzzle.puzzleownership_set.filter.first %}
-                        {% if ownership.borrowed_by %}
-                        <p class="text-sm text-orange-600 mt-2">
-                            <span class="inline-flex items-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Utlånad till: {{ ownership.borrowed_by }}
-                            </span>
-                        </p>
-                        {% endif %}
-                        {% endwith %}
-                    </a>
-                    
-                    <div class="mt-4 flex space-x-2">
-                        <form method="post" action="{% url 'toggle_owned' puzzle.id %}" class="inline toggle-owned-form">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="px-3 py-1 text-sm {% if puzzle in user.userprofile.owned_puzzles.all %}bg-green-600 hover:bg-green-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white rounded-md">
-                                {% if puzzle in user.userprofile.owned_puzzles.all %}
-                                    Äger
-                                {% else %}
-                                    Äger inte
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Mina pussel</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Ägda pussel -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Mina Pussel</h2>
+                <div class="space-y-4">
+                    {% for puzzle in owned_puzzles %}
+                    <div class="border-b pb-4 hover:bg-gray-50 transition-colors">
+                        <a href="{% url 'puzzle_detail' puzzle.id %}" class="block">
+                            <h3 class="font-medium hover:text-blue-600">{{ puzzle.name_en }}</h3>
+                            <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+                            <p class="text-sm text-gray-600">{{ puzzle.pieces }} bitar</p>
+                            
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <!-- Utlåningsstatus -->
+                                {% with ownership=puzzle.puzzleownership_set.first %}
+                                {% if ownership.borrowed_by %}
+                                <div class="bg-amber-100 border-l-4 border-amber-500 p-2 w-full">
+                                    <p class="text-sm text-amber-700">
+                                        Utlånat till: {{ ownership.borrowed_by }}
+                                    </p>
+                                </div>
                                 {% endif %}
-                            </button>
-                        </form>
-                        
-                        <form method="post" action="{% url 'toggle_completed' puzzle.id %}" class="inline toggle-completed-form">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="px-3 py-1 text-sm {% if puzzle in user.userprofile.completed_puzzles.all %}bg-blue-600 hover:bg-blue-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white rounded-md">
-                                {% if puzzle in user.userprofile.completed_puzzles.all %}
-                                    Pusslat
-                                {% else %}
-                                    Inte pusslat
-                                {% endif %}
-                            </button>
-                        </form>
+                                {% endwith %}
+
+                                <!-- Pusselstatus -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if puzzle in user.userprofile.completed_puzzles.all %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-700{% endif %}">
+                                    {% if puzzle in user.userprofile.completed_puzzles.all %}
+                                        Har pusslat
+                                    {% else %}
+                                        Inte pusslat
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </a>
                     </div>
+                    {% empty %}
+                    <p class="text-gray-600">Du äger inga pussel än.</p>
+                    {% endfor %}
                 </div>
             </div>
-            {% empty %}
-            <p class="text-gray-600">Du har inga pussel än.</p>
-            {% endfor %}
+
+            <!-- Tidigare ägda pussel -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Tidigare Ägda Pussel</h2>
+                <div class="space-y-4">
+                    {% for puzzle in previously_owned_puzzles %}
+                    <div class="border-b pb-4 hover:bg-gray-50 transition-colors">
+                        <a href="{% url 'puzzle_detail' puzzle.id %}" class="block">
+                            <h3 class="font-medium hover:text-blue-600">{{ puzzle.name_en }}</h3>
+                            <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+                            <p class="text-sm text-gray-600">{{ puzzle.pieces }} bitar</p>
+                            
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <!-- Pusselstatus -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if puzzle in user.userprofile.completed_puzzles.all %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-700{% endif %}">
+                                    {% if puzzle in user.userprofile.completed_puzzles.all %}
+                                        Har pusslat
+                                    {% else %}
+                                        Inte pusslat
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-600">Du har inga tidigare ägda pussel.</p>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
