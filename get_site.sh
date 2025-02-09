@@ -28,7 +28,7 @@ if [ -f /proc/1/environ ] && grep -q "container=lxc" /proc/1/environ; then
     python manage.py migrate --database=puzzles_db
 
     # Skapa/uppdatera superuser
-    echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@jvh.com', 'Password')" | python manage.py shell
+    python manage.py create_admin_user
 
     # Samla statiska filer
     python manage.py collectstatic --noinput
@@ -202,7 +202,7 @@ pct exec $CT_ID -- bash -c "
     python manage.py makemigrations
     python manage.py migrate --database=default
     python manage.py migrate --database=puzzles_db
-    echo \"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@jvh.com', 'Password')\" | python manage.py shell
+    python manage.py create_admin_user
 "
 check_command "Kunde inte skapa databaser eller superuser"
 
