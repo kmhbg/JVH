@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Min Dashboard</h1>
+    
+    <!-- Statistik kort -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-700">Totalt antal pussel</h2>
+            <p class="text-3xl font-bold text-blue-600">{{ total_puzzles }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-700">Ägda pussel</h2>
+            <p class="text-3xl font-bold text-green-600">{{ owned_count }}</p>
+            <p class="text-sm text-gray-500">{{ owned_percentage }}% av alla pussel</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold text-gray-700">Färdiga pussel</h2>
+            <p class="text-3xl font-bold text-purple-600">{{ completed_count }}</p>
+            <p class="text-sm text-gray-500">{{ completed_percentage }}% av alla pussel</p>
+        </div>
+    </div>
+    
+    <!-- Senaste pussel -->
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Dina senaste pussel</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for puzzle in recent_puzzles %}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                {% if puzzle.image_url %}
+                <img src="{{ puzzle.image_url }}" alt="{{ puzzle.name_en }}" class="w-full h-48 object-cover">
+                {% endif %}
+                <div class="p-4">
+                    <a href="{% url 'puzzle_detail' puzzle.id %}" class="block hover:text-blue-600">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ puzzle.name_en }}</h3>
+                        <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+                        
+                        {% with ownership=puzzle.puzzleownership_set.filter.first %}
+                        {% if ownership.borrowed_by %}
+                        <p class="text-sm text-orange-600 mt-2">
+                            <span class="inline-flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Utlånad till: {{ ownership.borrowed_by }}
+                            </span>
+                        </p>
+                        {% endif %}
+                        {% endwith %}
+                    </a>
+                    
+                    <div class="mt-4 flex space-x-2">
+                        <form method="post" action="{% url 'toggle_owned' puzzle.id %}" class="inline toggle-owned-form">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="px-3 py-1 text-sm {% if puzzle in user.userprofile.owned_puzzles.all %}bg-green-600 hover:bg-green-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white rounded-md">
+                                {% if puzzle in user.userprofile.owned_puzzles.all %}
+                                    Äger
+                                {% else %}
+                                    Äger inte
+                                {% endif %}
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'toggle_completed' puzzle.id %}" class="inline toggle-completed-form">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="px-3 py-1 text-sm {% if puzzle in user.userprofile.completed_puzzles.all %}bg-blue-600 hover:bg-blue-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white rounded-md">
+                                {% if puzzle in user.userprofile.completed_puzzles.all %}
+                                    Pusslat
+                                {% else %}
+                                    Inte pusslat
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-600">Du har inga pussel än.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function handleToggle(form, successCallback) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    successCallback(data);
+                }
+            });
+        });
+    }
+
+    // Hantera alla "Äger" knappar
+    document.querySelectorAll('.toggle-owned-form').forEach(form => {
+        handleToggle(form, data => {
+            const button = form.querySelector('button');
+            if (data.is_owned) {
+                button.textContent = 'Äger';
+                button.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                button.classList.add('bg-green-600', 'hover:bg-green-700');
+            } else {
+                button.textContent = 'Äger inte';
+                button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                button.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            }
+        });
+    });
+
+    // Hantera alla "Pusslat" knappar
+    document.querySelectorAll('.toggle-completed-form').forEach(form => {
+        handleToggle(form, data => {
+            const button = form.querySelector('button');
+            if (data.is_completed) {
+                button.textContent = 'Pusslat';
+                button.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                button.textContent = 'Inte pusslat';
+                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                button.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %} 

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Alla Pussel</h1>
+
+    <div class="mb-6">
+        <form method="get" class="flex gap-2">
+            <input type="text" 
+                   name="search" 
+                   value="{{ search_query }}" 
+                   placeholder="Sök på namn eller produktnummer"
+                   class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <button type="submit" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                Sök
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            {% for puzzle in puzzles %}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                {% if puzzle.image_url %}
+                <img src="{{ puzzle.image_url }}" alt="{{ puzzle.name_en }}" class="w-full h-48 object-cover">
+                {% endif %}
+                <div class="p-4">
+                    <a href="{% url 'puzzle_detail' puzzle.id %}" class="block hover:text-blue-600">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ puzzle.name_en }}</h3>
+                    </a>
+                    <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+                    <p class="text-sm text-gray-600">{{ puzzle.pieces }} bitar</p>
+                    <div class="mt-4 flex gap-2">
+                        <form method="post" action="{% url 'toggle_owned' puzzle.id %}">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="{% if puzzle in user.userprofile.owned_puzzles.all %}
+                                           bg-green-600
+                                           {% else %}
+                                           bg-gray-600
+                                           {% endif %}
+                                           text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
+                                {% if puzzle in user.userprofile.owned_puzzles.all %}
+                                ✓ Äger
+                                {% else %}
+                                Äger inte
+                                {% endif %}
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'toggle_completed' puzzle.id %}">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="{% if puzzle in user.userprofile.completed_puzzles.all %}
+                                           bg-purple-600
+                                           {% else %}
+                                           bg-gray-600
+                                           {% endif %}
+                                           text-white px-3 py-1 rounded-md text-sm hover:opacity-90">
+                                {% if puzzle in user.userprofile.completed_puzzles.all %}
+                                ✓ Färdig
+                                {% else %}
+                                Ej färdig
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

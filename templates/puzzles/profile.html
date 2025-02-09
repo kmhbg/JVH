@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Profilinställningar</h1>
+
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">Uppdatera profil</h2>
+            </div>
+            
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Användarinformation -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ user_form.username.id_for_label }}" 
+                               class="block text-sm font-medium text-gray-700">
+                            Användarnamn
+                        </label>
+                        {{ user_form.username }}
+                    </div>
+
+                    <div>
+                        <label for="{{ user_form.email.id_for_label }}" 
+                               class="block text-sm font-medium text-gray-700">
+                            E-post
+                        </label>
+                        {{ user_form.email }}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ user_form.first_name.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700">
+                                Förnamn
+                            </label>
+                            {{ user_form.first_name }}
+                        </div>
+
+                        <div>
+                            <label for="{{ user_form.last_name.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700">
+                                Efternamn
+                            </label>
+                            {{ user_form.last_name }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ profile_form.phone.id_for_label }}" 
+                               class="block text-sm font-medium text-gray-700">
+                            Telefonnummer
+                        </label>
+                        {{ profile_form.phone }}
+                    </div>
+                </div>
+
+                <!-- Formulärfel -->
+                {% if user_form.errors or profile_form.errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="text-sm text-red-700">
+                        {{ user_form.errors }}
+                        {{ profile_form.errors }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Submit knapp -->
+                <div class="pt-4">
+                    <button type="submit" 
+                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Spara ändringar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Statistik -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Samling</h3>
+                <p class="text-sm text-gray-600">
+                    Antal ägda pussel: {{ user.userprofile.owned_puzzles.count }}
+                </p>
+            </div>
+
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Prestationer</h3>
+                <p class="text-sm text-gray-600">
+                    Antal färdiga pussel: {{ user.userprofile.completed_puzzles.count }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

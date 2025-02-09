@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Jan van Haasteren Pussel</h1>
+
+<form method="get" action="{% url 'puzzle_list' %}">
+    <input type="text" name="search" value="{{ search_query }}" placeholder="Sök på namn eller produktnummer">
+    <button type="submit">Sök</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>Namn</th>
+            <th>Produktnummer</th>
+            <th>Bitar</th>
+            <th>Illustratör</th>
+            <th>Åtgärder</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for puzzle in puzzles %}
+        <tr>
+            <td>{{ puzzle.name_en }}</td>
+            <td>{{ puzzle.product_number }}</td>
+            <td>{{ puzzle.pieces }}</td>
+            <td>{{ puzzle.illustrator }}</td>
+            <td>
+                <a href="{% url 'toggle_owned' puzzle.id %}">
+                    {% if puzzle in user.userprofile.owned_puzzles.all %}
+                    ✓ Äger
+                    {% else %}
+                    Markera som ägd
+                    {% endif %}
+                </a>
+                <a href="{% url 'toggle_completed' puzzle.id %}">
+                    {% if puzzle in user.userprofile.completed_puzzles.all %}
+                    ✓ Pusslad
+                    {% else %}
+                    Markera som pusslad
+                    {% endif %}
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 

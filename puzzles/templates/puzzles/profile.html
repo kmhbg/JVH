@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Min Profil</h1>
+
+<h2>Mina pussel</h2>
+<ul>
+    {% for puzzle in profile.owned_puzzles.all %}
+    <li>{{ puzzle.name_en }} ({{ puzzle.product_number }})</li>
+    {% empty %}
+    <li>Du har inte lagt till några pussel än.</li>
+    {% endfor %}
+</ul>
+
+<h2>Pusslade pussel</h2>
+<ul>
+    {% for puzzle in profile.completed_puzzles.all %}
+    <li>{{ puzzle.name_en }} ({{ puzzle.product_number }})</li>
+    {% empty %}
+    <li>Du har inte markerat några pussel som pusslade än.</li>
+    {% endfor %}
+</ul>
+{% endblock %} 

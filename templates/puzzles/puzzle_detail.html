@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900">{{ puzzle.name_en }}</h2>
+            <p class="text-sm text-gray-600">{{ puzzle.product_number }}</p>
+        </div>
+
+        <!-- Bildgalleri -->
+        <div class="p-6 border-b border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for image in puzzle.images.all %}
+                <img src="{{ image.image_url }}" alt="{{ puzzle.name_en }}" class="w-full rounded-lg">
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pusselinformation -->
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Pusselinformation</h3>
+                <dl class="grid grid-cols-2 gap-4">
+                    <dt class="text-gray-600">Serie</dt>
+                    <dd>{{ puzzle.series }}</dd>
+                    <dt class="text-gray-600">Bitar</dt>
+                    <dd>{{ puzzle.pieces }}</dd>
+                    <dt class="text-gray-600">Illustratör</dt>
+                    <dd>{{ puzzle.illustrator }}</dd>
+                    <dt class="text-gray-600">Utgivare</dt>
+                    <dd>{{ puzzle.publisher }}</dd>
+                    <dt class="text-gray-600">Utgivningsdatum</dt>
+                    <dd>{{ puzzle.release_date }}</dd>
+                </dl>
+            </div>
+
+            {% if puzzle in user.userprofile.owned_puzzles.all %}
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Mitt pussel</h3>
+                
+                {% if ownership.borrowed_by %}
+                <div class="mb-6 bg-orange-50 p-4 rounded-lg">
+                    <p class="text-orange-700">Utlånad till: {{ ownership.borrowed_by }}</p>
+                    <p class="text-orange-700">Datum: {{ ownership.borrowed_date }}</p>
+                    <form method="post" class="mt-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_puzzle" value="1">
+                        <button type="submit" class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700">
+                            Markera som återlämnad
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    {{ borrow_form.as_p }}
+                    <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Registrera utlåning
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Lånehistorik -->
+                <div class="mt-8">
+                    <h4 class="text-lg font-semibold mb-2">Lånehistorik</h4>
+                    {% if borrow_history %}
+                    <ul class="divide-y divide-gray-200">
+                        {% for loan in borrow_history %}
+                        <li class="py-3">
+                            <p class="text-sm">
+                                <span class="font-medium">{{ loan.borrowed_by }}</span>
+                                <span class="text-gray-500">
+                                    {{ loan.borrowed_date }} - {{ loan.returned_date|default:"Ej återlämnad" }}
+                                </span>
+                            </p>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-gray-500">Ingen lånehistorik än</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-gray-600">Du måste äga pusslet för att kunna hantera utlåning.</p>
+                <form method="post" action="{% url 'toggle_owned' puzzle.id %}" class="mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Markera som ägd
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Bilduppladdning och galleri -->
+        <div class="mt-8">
+            <h3 class="text-lg font-semibold mb-4">Mina bilder</h3>
+            
+            <form method="post" enctype="multipart/form-data" class="mb-6">
+                {% csrf_token %}
+                <input type="hidden" name="upload_image" value="1">
+                {{ image_form.as_p }}
+                <button type="submit" class="mt-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                    Ladda upp bild
+                </button>
+            </form>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for image in user_images %}
+                <div class="relative">
+                    <img src="{{ image.image.url }}" alt="Användaruppladdad bild" class="w-full rounded-lg">
+                    <p class="text-sm text-gray-500 mt-1">
+                        Uppladdad av: {{ image.uploaded_by.user.username }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
