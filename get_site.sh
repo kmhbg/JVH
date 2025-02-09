@@ -62,16 +62,22 @@ if pct status $CT_ID >/dev/null 2>&1; then
     exit 1
 fi
 
-# Kontrollera om template finns
-if [ ! -f "/var/lib/vz/template/cache/$CT_TEMPLATE" ]; then
+# Uppdatera template-listan
+echo "Uppdaterar template-listan..."
+pveam update
+check_command "Kunde inte uppdatera template-listan"
+
+# Kontrollera om template finns och ladda ner vid behov
+echo "Kontrollerar template..."
+if ! pveam list $STORAGE | grep -q "$CT_TEMPLATE"; then
     echo "Laddar ner template..."
-    pveam download local $CT_TEMPLATE
+    pveam download $STORAGE $CT_TEMPLATE
     check_command "Kunde inte ladda ner template"
 fi
 
 echo "Skapar container..."
 # Skapa container
-pct create $CT_ID "/var/lib/vz/template/cache/$CT_TEMPLATE" \
+pct create $CT_ID "$STORAGE:vztmpl/$CT_TEMPLATE" \
     --hostname $CT_NAME \
     --password "$CT_PASSWORD" \
     --net0 name=eth0,bridge=vmbr0,ip=dhcp \
