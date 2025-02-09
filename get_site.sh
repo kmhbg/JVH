@@ -1,12 +1,50 @@
 #!/bin/bash
 
+# Kontrollera om scriptet körs i en LXC container
+if [ -f /proc/1/environ ] && grep -q "container=lxc" /proc/1/environ; then
+    echo "Kör uppdatering i LXC containern..."
+    
+    # Gå till projektmappen
+    cd /opt/jvh/JVH
+
+    # Aktivera virtual environment
+    source venv/bin/activate
+
+    # Spara eventuella lokala ändringar
+    git stash
+
+    # Hämta senaste versionen från GitHub
+    git pull origin main
+
+    # Återställ eventuella lokala ändringar
+    git stash pop
+
+    # Uppdatera dependencies
+    pip install -r requirements.txt
+
+    # Kör migrations
+    python manage.py makemigrations
+    python manage.py migrate --database=default
+    python manage.py migrate --database=puzzles_db
+
+    # Samla statiska filer
+    python manage.py collectstatic --noinput
+
+    # Starta om tjänsterna
+    supervisorctl restart jvh
+    systemctl restart nginx
+
+    echo "Uppdatering klar!"
+    exit 0
+fi
+
 # Konfigurera LXC container för JVH pussel-sida
 # Kör detta script på Proxmox hosten
 
 # Variabler
 CT_ID="200"  # Container ID
 CT_NAME="jvh-puzzles"
-CT_PASSWORD="dittlösenord"
+CT_PASSWORD="root"
 STORAGE="local"  # Anpassa till önskad storage
 CT_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.xz"
 
@@ -42,7 +80,7 @@ pct exec $CT_ID -- bash -c "
 # Klona repository och sätt upp miljön
 pct exec $CT_ID -- bash -c "
     cd /opt/jvh
-    git clone https://github.com/din-repo/JVH.git
+    git clone https://github.com/kmhbg/JVH.git
     cd JVH
     python3 -m venv venv
     source venv/bin/activate
