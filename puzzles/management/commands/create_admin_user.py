@@ -3,26 +3,19 @@ from django.contrib.auth.models import User
 from puzzles.models import UserProfile
 
 class Command(BaseCommand):
-    help = 'Skapar admin-användare om den inte redan finns'
+    help = 'Skapar eller uppdaterar admin-användaren'
 
     def handle(self, *args, **options):
-        if not User.objects.filter(username='admin').exists():
-            try:
-                # Skapa admin-användare
-                admin = User.objects.create_superuser(
-                    username='admin',
-                    email='admin@jvh.com',
-                    password='Password'
-                )
-                
-                # Skapa UserProfile för admin
-                UserProfile.objects.create(
-                    user=admin,
-                    role='admin'
-                )
-                
-                self.stdout.write(self.style.SUCCESS('Admin-användare har skapats framgångsrikt'))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Kunde inte skapa admin-användare: {str(e)}'))
-        else:
-            self.stdout.write(self.style.SUCCESS('Admin-användare finns redan')) 
+        username = 'jvhadmin'
+        email = 'admin@example.com'
+        password = 'admin123'
+
+        try:
+            user = User.objects.get(username=username)
+            user.set_password(password)
+            user.save()
+            self.stdout.write(self.style.SUCCESS('Admin-lösenord uppdaterat'))
+        except User.DoesNotExist:
+            user = User.objects.create_superuser(username, email, password)
+            UserProfile.objects.create(user=user, role='admin')
+            self.stdout.write(self.style.SUCCESS('Admin-användare skapad')) 
