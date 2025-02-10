@@ -2,17 +2,17 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Min Dashboard</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Min Sida</h1>
     
     <!-- Statistik kort -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700">Totalt antal pussel</h2>
+            <h2 class="text-xl font-semibold text-gray-700">Totalt antal pussel att pussla</h2>
             <p class="text-3xl font-bold text-blue-600">{{ total_puzzles }}</p>
         </div>
         
         <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700">Äger nu</h2>
+            <h2 class="text-xl font-semibold text-gray-700">Antal pussel jag äger nu</h2>
             <p class="text-3xl font-bold text-green-600">{{ owned_count }}</p>
             <p class="text-sm text-gray-500">{{ owned_percentage }}% av alla pussel</p>
         </div>

@@ -1,23 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-900">Administratörsverktyg</h2>
-        </div>
-        
-        <div class="p-6">
-            <form method="post" action="{% url 'trigger_import' %}" class="space-y-4">
-                {% csrf_token %}
-                <button type="submit" 
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Importera pussel från JVH
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
+
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="bg-white shadow rounded-lg p-6">
@@ -38,7 +22,7 @@
             <form method="post" action="{% url 'trigger_match_images' %}" class="inline">
                 {% csrf_token %}
                 <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                    Matcha befintliga bilder
+                    Matcha befintliga bilder med databasen
                 </button>
             </form>
         </div>

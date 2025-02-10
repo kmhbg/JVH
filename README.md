@@ -17,7 +17,7 @@ A web application for managing and sharing your collection of Jan van Haasteren 
 To install the project in a Proxmox to a LXC container, follow these steps from the host:
 
 ```bash
-wget https://raw.githubusercontent.com/kmhbg/JVH/main/Install_jvh_lxc.sh
+wget https://raw.githubusercontent.com/kmhbg/JVH/refs/heads/main/Install_jvh_lxc.sh
 chmod +x get_site.sh
 ./get_site.sh
 ```
@@ -27,7 +27,7 @@ To update to the latest version:
 Run the following in the LXC container:
 
 ```bash
-wget https://raw.githubusercontent.com/kmhbg/JVH/main/Install_jvh_lxc.sh
+wget https://raw.githubusercontent.com/kmhbg/JVH/refs/heads/main/Install_jvh_lxc.sh
 chmod +x Install_jvh_lxc.sh
 ./Install_jvh_lxc.sh
 ```

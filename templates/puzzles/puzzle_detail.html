@@ -42,13 +42,12 @@
                                 {% if puzzle in user.userprofile.completed_puzzles.all %}
                                     Har pusslat
                                 {% else %}
-                                    Inte pusslat
+                                    Har inte pusslat
                                 {% endif %}
                             </span>
                         </div>
                         <form method="post" action="{% url 'toggle_completed' puzzle.id %}" 
-                              class="mt-3"
-                              onsubmit="return confirm('Är du säker på att du vill ändra pusselstatus?')">
+                              class="mt-3">
                             {% csrf_token %}
                             <button type="submit" 
                                     class="w-full {% if puzzle in user.userprofile.completed_puzzles.all %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} text-white px-4 py-2 rounded-md transition-colors">
@@ -155,8 +154,7 @@
                                     </form>
                                     
                                     <form method="post" action="{% url 'mark_puzzle_sold' puzzle.id %}" 
-                                          class="mt-6"
-                                          onsubmit="return confirm('Är du säker på att du vill markera pusslet som sålt?')">
+                                          class="mt-6 mark-sold-form">
                                         {% csrf_token %}
                                         <button type="submit" 
                                                 class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md">
@@ -167,8 +165,7 @@
                             {% endif %}
                         {% else %}
                             <form method="post" action="{% url 'mark_puzzle_sold' puzzle.id %}" 
-                                  class="mt-4"
-                                  onsubmit="return confirm('Är du säker på att du vill markera pusslet som ägt igen?')">
+                                  class="mt-4 mark-sold-form">
                                 {% csrf_token %}
                                 <button type="submit" 
                                         class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full">
@@ -204,7 +201,7 @@
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <form method="post" 
                           action="{% url 'remove_puzzle' puzzle.id %}"
-                          onsubmit="return confirm('Är du säker på att du vill ta bort detta pussel från din samling? Detta går inte att ångra.')">
+                          class="remove-puzzle-form">
                         {% csrf_token %}
                         <button type="submit" 
                                 class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors">
@@ -226,4 +223,190 @@
         </div>
     </div>
 </div>
+
+<!-- Modal för bekräftelse -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Bekräfta ändring</h3>
+        <p class="text-gray-600 mb-6">Är du säker på att du vill ändra pusselstatus?</p>
+        <div class="flex justify-end gap-4">
+            <button id="cancelButton" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                Avbryt
+            </button>
+            <button id="confirmButton" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Bekräfta
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för sålt -->
+<div id="soldModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Bekräfta ändring</h3>
+        <p class="text-gray-600 mb-6" id="soldModalText">
+            {% if ownership and ownership.status == 'previously_owned' %}
+                Är du säker på att du vill markera pusslet som ägt igen?
+            {% else %}
+                Är du säker på att du vill markera pusslet som sålt?
+            {% endif %}
+        </p>
+        <div class="flex justify-end gap-4">
+            <button id="cancelSoldButton" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                Avbryt
+            </button>
+            <button id="confirmSoldButton" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                Bekräfta
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal för ta bort -->
+<div id="removeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Bekräfta borttagning</h3>
+        <p class="text-gray-600 mb-6">Är du säker på att du vill ta bort detta pussel från din samling? Detta går inte att ångra.</p>
+        <div class="flex justify-end gap-4">
+            <button id="cancelRemoveButton" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                Avbryt
+            </button>
+            <button id="confirmRemoveButton" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                Ta bort
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action*="toggle_completed"]');
+    const modal = document.getElementById('confirmModal');
+    const confirmBtn = document.getElementById('confirmButton');
+    const cancelBtn = document.getElementById('cancelButton');
+    let formToSubmit = null;
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            formToSubmit = e.target;
+            modal.classList.remove('hidden');
+        });
+
+        confirmBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            });
+        });
+
+        cancelBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+
+        // Stäng modal när man klickar utanför
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+
+    // Hantera "markera som sålt"
+    const soldForm = document.querySelector('.mark-sold-form');
+    const soldModal = document.getElementById('soldModal');
+    const confirmSoldBtn = document.getElementById('confirmSoldButton');
+    const cancelSoldBtn = document.getElementById('cancelSoldButton');
+
+    if (soldForm) {
+        soldForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            soldModal.classList.remove('hidden');
+        });
+
+        confirmSoldBtn.addEventListener('click', function() {
+            soldModal.classList.add('hidden');
+            
+            fetch(soldForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': soldForm.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new FormData(soldForm)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            });
+        });
+
+        cancelSoldBtn.addEventListener('click', function() {
+            soldModal.classList.add('hidden');
+        });
+
+        soldModal.addEventListener('click', function(e) {
+            if (e.target === soldModal) {
+                soldModal.classList.add('hidden');
+            }
+        });
+    }
+
+    // Hantera "ta bort pussel"
+    const removeForm = document.querySelector('.remove-puzzle-form');
+    const removeModal = document.getElementById('removeModal');
+    const confirmRemoveBtn = document.getElementById('confirmRemoveButton');
+    const cancelRemoveBtn = document.getElementById('cancelRemoveButton');
+
+    if (removeForm) {
+        removeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            removeModal.classList.remove('hidden');
+        });
+
+        confirmRemoveBtn.addEventListener('click', function() {
+            removeModal.classList.add('hidden');
+            
+            fetch(removeForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': removeForm.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new FormData(removeForm)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = '/';  // Omdirigera till dashboard efter borttagning
+                }
+            });
+        });
+
+        cancelRemoveBtn.addEventListener('click', function() {
+            removeModal.classList.add('hidden');
+        });
+
+        removeModal.addEventListener('click', function(e) {
+            if (e.target === removeModal) {
+                removeModal.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

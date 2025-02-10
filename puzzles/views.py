@@ -102,11 +102,15 @@ def toggle_completed(request, puzzle_id):
             is_completed = True
             message = "Pusslet har markerats som pusslat"
         
-        return JsonResponse({
-            'status': 'success',
-            'is_completed': is_completed,
-            'message': message
-        })
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'is_completed': is_completed,
+                'message': message
+            })
+        else:
+            messages.success(request, message)
+            return redirect('puzzle_detail', puzzle_id=puzzle_id)
     return JsonResponse({'status': 'error'}, status=400)
 
 def register(request):
@@ -428,13 +432,19 @@ def mark_puzzle_sold(request, puzzle_id):
             puzzle_id=puzzle_id,
             owner_id=request.user.userprofile.id
         )
-        # Växla mellan statusarna
         ownership.status = 'previously_owned' if ownership.status == 'owned' else 'owned'
         ownership.save(using='puzzles_db')
         
         status_text = 'sålt' if ownership.status == 'previously_owned' else 'ägt igen'
-        messages.success(request, f'Pusslet har markerats som {status_text}')
-        return redirect('puzzle_detail', puzzle_id=puzzle_id)
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Pusslet har markerats som {status_text}'
+            })
+        else:
+            messages.success(request, f'Pusslet har markerats som {status_text}')
+            return redirect('puzzle_detail', puzzle_id=puzzle_id)
     return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
@@ -446,8 +456,14 @@ def remove_puzzle(request, puzzle_id):
             owner_id=request.user.userprofile.id
         )
         ownership.delete()
-        messages.success(request, 'Pusslet har tagits bort från din samling')
-        return redirect('dashboard')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Pusslet har tagits bort från din samling'
+            })
+        else:
+            messages.success(request, 'Pusslet har tagits bort från din samling')
+            return redirect('dashboard')
     return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
