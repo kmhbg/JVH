@@ -18,4 +18,30 @@
         </div>
     </div>
 </div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-semibold mb-4">Administrativa åtgärder</h2>
+        
+        <!-- Importera pussel -->
+        <div class="mb-4">
+            <form method="post" action="{% url 'trigger_import' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Importera pussel
+                </button>
+            </form>
+        </div>
+        
+        <!-- Matcha bilder -->
+        <div class="mb-4">
+            <form method="post" action="{% url 'trigger_match_images' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Matcha befintliga bilder
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %} 

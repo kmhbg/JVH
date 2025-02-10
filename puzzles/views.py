@@ -278,10 +278,23 @@ def trigger_import(request):
     if request.method == 'POST':
         try:
             call_command('import_puzzles')
-            messages.success(request, 'Pusselimporten har slutförts!')
+            messages.success(request, 'Pusselimport genomförd!')
         except Exception as e:
-            messages.error(request, f'Ett fel uppstod under importen: {str(e)}')
-    return redirect('admin_dashboard')
+            messages.error(request, f'Ett fel uppstod: {str(e)}')
+        return redirect('admin_dashboard')
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+@admin_required
+def trigger_match_images(request):
+    if request.method == 'POST':
+        try:
+            call_command('match_existing_images')
+            messages.success(request, 'Bildmatchning genomförd!')
+        except Exception as e:
+            messages.error(request, f'Ett fel uppstod: {str(e)}')
+        return redirect('admin_dashboard')
+    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 @admin_required

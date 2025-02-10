@@ -234,6 +234,9 @@ echo "from django.contrib.auth.models import User; User.objects.create_superuser
 # Importera pussel
 python manage.py import_puzzles
 
+# Matcha befintliga bilder
+python manage.py match_existing_images
+
 # Sätt rättigheter på databasfilerna
 chown -R jvh:jvh .
 chmod 664 db.sqlite3
